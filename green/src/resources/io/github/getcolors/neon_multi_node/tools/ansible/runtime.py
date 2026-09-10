@@ -28,7 +28,7 @@ def password(role): return (P/'secrets'/ (role+'_password')).read_text().strip()
 def sql(query,role=None,pw=None,tls='require',host='127.0.0.1',expect=True,refusal=None):
     role=role or C['role']; pw=password('neon_role') if pw is None else pw
     env={'PATH':os.environ['PATH'],'PGPASSFILE':'/dev/null','PGCONNECT_TIMEOUT':'8','PGPASSWORD':pw}
-    p=subprocess.run(['psql','-w','-X','-v','ON_ERROR_STOP=1',f'host={host} port=55433 dbname={C["database"]} user={role} sslmode={tls}','-Atc',query],env=env,text=True,capture_output=True,timeout=45)
+    p=subprocess.run(['psql','-q','-w','-X','-v','ON_ERROR_STOP=1',f'host={host} port=55433 dbname={C["database"]} user={role} sslmode={tls}','-Atc',query],env=env,text=True,capture_output=True,timeout=45)
     if expect and p.returncode: raise RuntimeError('SQL gate failed: '+p.stderr.replace(pw,'[redacted]')[:800] if pw else 'SQL gate failed: '+p.stderr[:800])
     if not expect and p.returncode==0: raise RuntimeError('negative SQL gate unexpectedly succeeded')
     if not expect and refusal and not any(token.lower() in p.stderr.lower() for token in refusal): raise RuntimeError('negative SQL gate failed for unexpected reason: '+p.stderr.replace(pw,'[redacted]')[:500] if pw else 'negative SQL gate failed for unexpected reason')

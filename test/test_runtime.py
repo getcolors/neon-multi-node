@@ -24,6 +24,12 @@ class SQLGates(unittest.TestCase):
         with self.result(2,'error contains secret-value'):
             with self.assertRaises(RuntimeError) as caught:r.sql('SELECT 1',pw='secret-value')
             self.assertNotIn('secret-value',str(caught.exception))
+    def test_returning_value_is_not_replaced_by_trailing_insert_tag(self):
+        def psql(args,**kwargs):
+            output='new-witness\n' if '-q' in args else 'new-witness\nINSERT 0 1\n'
+            return subprocess.CompletedProcess(args,0,output,'')
+        with patch.object(r.subprocess,'run',side_effect=psql):
+            self.assertEqual(r.sql("INSERT INTO witness VALUES (1) RETURNING value",pw='test'),'new-witness')
     def test_clean_client_env_and_timeout(self):
         with self.result(0,stdout='1') as execute:
             self.assertEqual(r.sql('SELECT 1',pw='test'),'1')
