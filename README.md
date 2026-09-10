@@ -81,6 +81,28 @@ safekeeper. Independent external queries retained the random deployment witness
 and every recorded acknowledged outage write. A timed-out write was present
 after quorum returned: a client timeout does not establish rollback.
 
+Native runtime verification also completed a fresh Red create followed by Blue
+reconvergence on the same profile. All five instance IDs, five root volumes and
+six containers remained unchanged, and the exact external SQL witness survived.
+Blue then completed the recovery rehearsal, verified all three acknowledged
+outage writes externally, deleted the deployment, and passed repeated deletion.
+Independent audits found no remaining owned AWS resources, either S3 bucket,
+scoped IAM user, DNS record or local SSH material. See the
+[native runtime evidence](https://github.com/getcolors/neon-multi-node-aws/tree/main/evidence/red-blue)
+for the dated source pins and results.
+
+The reverse cycle also completed fresh Blue create, Red reconvergence with the
+same five instances, five root volumes and six containers, and Red recovery
+rehearsal. Independent trusted TLS queries retained the original random witness
+and all three unique acknowledged outage writes. The two-member quorum outage
+withheld acknowledgement for 45.132080 seconds; its uncertain write was present
+after recovery. Red's protected-delete refusal and complete teardown passed.
+Independent audits verified zero remaining deployment resources and billable
+resources, both buckets absent, and DNS and local SSH material removed. Repeated
+delete passed through both Red and Blue, followed by another independent absence
+audit. Each fresh database has its own three acknowledged outage witnesses;
+the witness counts are not combined across the two lifecycles.
+
 Use the report's final inventory for the test deployment's resource status.
 These results do not prove availability-zone survival, automatic compute or
 pageserver failover, or recovery from simultaneous loss of all storage machines.

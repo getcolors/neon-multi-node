@@ -87,6 +87,16 @@ remove DNS and local aliases before destroying machines, retain access keys on
 failure, and finalize the state bucket only after complete retirement. Confirm
 cloud absence independently and exercise repeated deletion for a lifecycle test.
 
+Live qualification on September 10, 2026 completed fresh Red create, Blue
+reconvergence with unchanged resource identities, Blue recovery rehearsal and
+Blue deletion with independent resource-absence checks and repeated deletion.
+The reverse cycle also passed fresh Blue create, Red reconvergence with unchanged
+identities, and Red recovery with exact external witness readback. Red teardown
+and independent absence audits passed, followed by successful repeated deletion
+through both Red and Blue and a final independent absence audit.
+These results cover the recorded source pins and a single availability zone;
+see the deployment report before extending them to other versions or failures.
+
 Read the [package README](https://github.com/getcolors/neon-multi-node#readme)
 for operation and recovery limits, the [Blue SDK](https://github.com/getcolors/blue)
 for workflow semantics, and [colors-compute](https://github.com/getcolors/colors-compute)
