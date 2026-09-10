@@ -1,0 +1,121 @@
+---
+- name: Prove compute replacement preserves data
+  hosts: compute
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Recreate disposable compute
+      ansible.builtin.command: docker compose -f /opt/neon/compose.json up -d --force-recreate compute
+      changed_when: true
+    - name: Prove retained witness
+      ansible.builtin.command: python3 /opt/neon/runtime.py witness
+      register: witness
+      until: witness.rc == 0
+      retries: 60
+      delay: 3
+- name: Prove one safekeeper loss and recovery
+  hosts: compute
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Exercise each safekeeper independently
+      ansible.builtin.include_tasks: rehearse-member.yml
+      loop: "{{ groups['safekeeper'] }}"
+      loop_control:
+        loop_var: member
+    - name: Exercise quorum refusal
+      block:
+        - name: Stop two safekeepers
+          ansible.builtin.command: docker compose -f /opt/neon/compose.json stop safekeeper
+          delegate_to: "{{ item }}"
+          loop: "{{ groups['safekeeper'][:2] }}"
+        - name: Require no successful write acknowledgement
+          ansible.builtin.command: python3 /opt/neon/runtime.py no-quorum
+      always:
+        - name: Restore quorum
+          ansible.builtin.command: docker compose -f /opt/neon/compose.json up -d safekeeper
+          delegate_to: "{{ item }}"
+          loop: "{{ groups['safekeeper'][:2] }}"
+    - name: Restart broker
+      ansible.builtin.command: docker compose -f /opt/neon/compose.json restart broker
+      delegate_to: "{{ groups['pageserver'][0] }}"
+    - name: Read retained quorum witness
+      ansible.builtin.command: python3 /opt/neon/runtime.py quorum-witness
+    - name: Prove all members and uploads recover
+      ansible.builtin.command: python3 /opt/neon/runtime.py check
+- name: Rehydrate pageserver from S3 and surviving WAL
+  hosts: compute
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stop compute before storage recovery
+      ansible.builtin.command: docker compose -f /opt/neon/compose.json stop compute
+    - name: Stop pageserver
+      ansible.builtin.command: docker compose -f /opt/neon/compose.json stop pageserver
+      delegate_to: "{{ groups['pageserver'][0] }}"
+    - name: Remove disposable pageserver tenant cache
+      ansible.builtin.file:
+        path: /opt/neon/pageserver/tenants
+        state: absent
+      delegate_to: "{{ groups['pageserver'][0] }}"
+    - name: Restart pageserver
+      ansible.builtin.command: docker compose -f /opt/neon/compose.json up -d pageserver
+      delegate_to: "{{ groups['pageserver'][0] }}"
+    - name: Reattach at next remote generation
+      ansible.builtin.command: /opt/neon/bootstrap.sh
+      register: attach
+      until: attach.rc == 0
+      retries: 30
+      delay: 3
+    - name: Recreate compute against recovered storage
+      ansible.builtin.command: docker compose -f /opt/neon/compose.json up -d --force-recreate compute
+    - name: Prove retained original witness
+      ansible.builtin.command: python3 /opt/neon/runtime.py witness
+      register: witness
+      until: witness.rc == 0
+      retries: 60
+      delay: 3
+    - name: Prove quorum witness after storage recovery
+      ansible.builtin.command: python3 /opt/neon/runtime.py quorum-witness
+    - name: Prove complete recovery gates
+      ansible.builtin.command: python3 /opt/neon/runtime.py check
+- name: Rebuild one empty safekeeper from surviving quorum
+  hosts: compute
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stop compute for fresh member bootstrap
+      ansible.builtin.command: docker compose -f /opt/neon/compose.json stop compute
+    - name: Replace safekeeper local state
+      block:
+        - name: Stop first safekeeper
+          ansible.builtin.command: docker compose -f /opt/neon/compose.json stop safekeeper
+          delegate_to: "{{ groups['safekeeper'][0] }}"
+        - name: Remove member local state only
+          ansible.builtin.file:
+            path: /opt/neon/safekeeper
+            state: absent
+          delegate_to: "{{ groups['safekeeper'][0] }}"
+        - name: Recreate member directory with image ownership
+          ansible.builtin.file:
+            path: /opt/neon/safekeeper
+            state: directory
+            owner: '1000'
+            group: '1000'
+            mode: '0700'
+          delegate_to: "{{ groups['safekeeper'][0] }}"
+      always:
+        - name: Restart fresh safekeeper
+          ansible.builtin.command: docker compose -f /opt/neon/compose.json up -d --force-recreate safekeeper
+          delegate_to: "{{ groups['safekeeper'][0] }}"
+        - name: Recreate compute for WAL proposer recovery
+          ansible.builtin.command: docker compose -f /opt/neon/compose.json up -d --force-recreate compute
+    - name: Prove both persisted witnesses
+      ansible.builtin.command: "python3 /opt/neon/runtime.py {{ item }}"
+      loop: [witness, quorum-witness]
+      register: witnesses
+      until: witnesses.rc == 0
+      retries: 60
+      delay: 3
+    - name: Prove fresh member catches up and new uploads continue
+      ansible.builtin.command: python3 /opt/neon/runtime.py check

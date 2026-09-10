@@ -1,0 +1,39 @@
+# Native AWS S3 uses the inherited neon-r2-* storage configuration keys.
+profile: neon-multi-node-fixture
+workdir: WORKDIR
+provider-compute: aws
+provider-backend: s3
+provider-dns: cloudflare
+compute-prevent-destroy: true
+s3-bucket: neon-multi-node-fixture-state-123456789012-us-east-1
+s3-region: us-east-1
+s3-bucket-mode: managed
+neon-storage-managed: true
+neon-host: neon-multi-node-fixture.example.com
+neon-image: ghcr.io/neondatabase/neon:release-9129@sha256:166022a72bf9983eba96d061d794f4740edbd4c3301e66202c1180acce9a323c
+neon-compute-image: ghcr.io/neondatabase/compute-node-v17:release-compute-9073@sha256:ed6a613231d7026b4df8b00563444b9f33745370a3b3f0a2183e723f460ba974
+neon-pg-version: 17
+neon-tenant-id: 9529d95d734cf1a3c329f69c0fe2f1d0
+neon-timeline-id: 11ddd8a0dadbfd8df065ca17967a47eb
+neon-database: neondb
+neon-role: neon
+neon-r2-bucket: neon-multi-node-fixture-neon-123456789012-us-east-1
+neon-r2-region: us-east-1
+neon-r2-endpoint: https://s3.us-east-1.amazonaws.com
+neon-r2-prefix: neon-multi-node-fixture/data
+cloudflare-zone: example.com
+cloudflare-proxied: false
+aws-region: us-east-1
+aws-availability-zone: us-east-1a
+aws-image-id: ami-025d99823a4caad37
+aws-instance-type: t3.medium
+aws-instance-type-compute: t3.large
+aws-instance-type-pageserver: t3.large
+aws-instance-type-safekeeper: t3.medium
+aws-root-volume-size-gb: 40
+aws-vpc-cidr: 10.75.0.0/16
+aws-subnet-cidr: 10.75.1.0/24
+ssh-sources:
+- 192.0.2.100/32
+postgres-sources:
+- 192.0.2.100/32

@@ -1,0 +1,6 @@
+{:paths ["test/clj"] :deps {io.github.getcolors/neon-multi-node {:local/root "."}}
+ :tasks {test {:requires ([clojure.test :as t] [io.github.getcolors.neon-multi-node.core-test]) :task (let [r (t/run-tests 'io.github.getcolors.neon-multi-node.core-test)] (System/exit (if (pos? (+ (:fail r) (:error r))) 1 0)))}
+ golden {:task (shell "python3 ../scripts/golden.py")}
+ golden:accept {:task (shell "python3 ../scripts/golden.py --accept")}
+ syntax {:task (shell "python3 ../scripts/golden.py --syntax")}
+ pin {:task (load-file "tasks/pin.clj")}}}

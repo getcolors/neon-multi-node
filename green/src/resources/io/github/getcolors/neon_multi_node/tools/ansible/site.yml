@@ -1,0 +1,112 @@
+---
+- name: Prepare isolated Neon roles
+  hosts: all
+  become: true
+  tasks:
+    - name: Install runtime packages
+      ansible.builtin.apt:
+        name: [docker.io, docker-compose-v2, postgresql-client, rclone, jq, openssl, python3, certbot]
+        update_cache: true
+        cache_valid_time: 3600
+    - name: Enable Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+    - name: Create private configuration directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop: [/etc/neon, /opt/neon]
+    - name: Write deployment configuration
+      ansible.builtin.copy:
+        dest: /etc/neon/deployment.json
+        mode: '0600'
+        content: |
+          {"profile":"<{ profile }>","domain":"<{ domain }>","image":"<{ neon-image }>","compute_image":"<{ neon-compute-image }>","tenant":"<{ neon-tenant-id }>","timeline":"<{ neon-timeline-id }>","database":"<{ neon-database }>","role":"<{ neon-role }>","bucket":"<{ neon-r2-bucket }>","region":"<{ neon-r2-region }>","endpoint":"<{ neon-r2-endpoint }>","prefix":"<{ neon-r2-prefix }>","node_role":"{{ role }}","ordinal":{{ ordinal | int }},"private_ip":"{{ vpc_ip }}","pageserver":"{{ hostvars[groups['pageserver'][0]].vpc_ip }}","safekeepers":{{ groups['safekeeper'] | map('extract', hostvars, 'vpc_ip') | list | to_json }}}
+    - name: Install scoped application storage credentials
+      ansible.builtin.copy:
+        dest: /etc/neon/r2.env
+        mode: '0600'
+        content: |
+          AWS_ACCESS_KEY_ID={{ lookup('env', 'COLORS_PAR_NEON_R2_ACCESS_KEY_ID') }}
+          AWS_SECRET_ACCESS_KEY={{ lookup('env', 'COLORS_PAR_NEON_R2_SECRET_ACCESS_KEY') }}
+      no_log: true
+    - name: Install runtime scripts
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/opt/neon/{{ item }}"
+        mode: '0755'
+      loop: [runtime.py, scramgen.py, bootstrap.sh]
+    - name: Install compute specification template
+      ansible.builtin.copy:
+        src: compute-spec.json
+        dest: /etc/neon/compute-spec.json
+        mode: '0600'
+    - name: Render role configuration
+      ansible.builtin.command: python3 /opt/neon/runtime.py render
+      register: rendered
+      changed_when: "'CHANGED' in rendered.stdout"
+- name: Start durable storage
+  hosts: pageserver:safekeeper
+  become: true
+  tasks:
+    - name: Start role containers
+      ansible.builtin.command: python3 /opt/neon/runtime.py start
+      changed_when: false
+    - name: Wait for storage API
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ 9898 if role == 'pageserver' else 7676 }}"
+        timeout: 180
+- name: Reconcile tenant and start TLS compute
+  hosts: compute
+  become: true
+  tasks:
+    - name: Reconcile remote tenant ownership and timeline
+      ansible.builtin.command: /opt/neon/bootstrap.sh
+      register: bootstrap
+      changed_when: "'CHANGED' in bootstrap.stdout"
+    - name: Obtain publicly trusted certificate
+      ansible.builtin.command:
+        argv: [certbot, certonly, --standalone, --non-interactive, --agree-tos, --register-unsafely-without-email, --keep-until-expiring, -d, '<{ domain }>']
+      register: certbot
+      changed_when: "'Successfully received certificate' in certbot.stdout"
+    - name: Create readable TLS directory
+      ansible.builtin.file:
+        path: /etc/neon/tls
+        state: directory
+        owner: '1000'
+        group: '1000'
+        mode: '0700'
+    - name: Install TLS certificate and private key
+      ansible.builtin.copy:
+        remote_src: true
+        src: "/etc/letsencrypt/live/<{ domain }>/{{ item }}"
+        dest: "/etc/neon/tls/{{ item }}"
+        owner: '1000'
+        group: '1000'
+        mode: '0400'
+      loop: [fullchain.pem, privkey.pem]
+      no_log: true
+    - name: Install certificate renewal deployment hook
+      ansible.builtin.copy:
+        src: renew-tls.sh
+        dest: /etc/letsencrypt/renewal-hooks/deploy/neon-tls
+        mode: '0700'
+    - name: Enable certificate renewal timer
+      ansible.builtin.systemd:
+        name: certbot.timer
+        enabled: true
+        state: started
+    - name: Start compute
+      ansible.builtin.command: python3 /opt/neon/runtime.py start
+      changed_when: false
+    - name: Prove observable acceptance gates
+      ansible.builtin.command: python3 /opt/neon/runtime.py check
+      register: acceptance
+      changed_when: false
+    - name: Report acceptance
+      ansible.builtin.debug:
+        var: acceptance.stdout

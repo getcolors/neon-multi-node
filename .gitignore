@@ -1,0 +1,8 @@
+.*
+!.gitignore
+!.envrc
+!.github/
+!.github/**
+__pycache__/
+*.pyc
+*.log
