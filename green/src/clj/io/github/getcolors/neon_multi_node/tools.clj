@@ -174,7 +174,9 @@
  (let [dir (tool-dir opts ansible-tool)]
  (if (= :build (:green/event opts))
  (assoc (sc/scaffold opts (ansible-specs opts)) :green/exit 0)
- (let [rendered (sc/scaffold opts (ansible-specs opts))
+ (let [;; Scaffold interprets :delete as removal; cleanup needs executable files.
+ rendered (assoc (sc/scaffold (assoc opts :green/event :build) (ansible-specs opts))
+                 :green/event (:green/event opts))
  env (merge {"ANSIBLE_HOST_KEY_CHECKING" "True" "ANSIBLE_SSH_ARGS" "-o StrictHostKeyChecking=accept-new"}
  (when credentials? (storage/credential-env opts)))
  result (process/run-with-timeout ["ansible-playbook" "-i" "inventory.json" playbook] {:dir dir :extra-env env} 7200000)]

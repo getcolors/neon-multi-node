@@ -106,3 +106,39 @@
    (with-redefs [tofu/tofu-with-spec (fn [& _] (reset! called true) {:green/exit 0})]
     (is (= 1 (:green/exit (storage/step (assoc opts :green/event :delete)))))
     (is (false? @called))))))
+
+(require '[clojure.java.io :as io]
+         '[cheshire.core :as json]
+         '[green.process :as process])
+(deftest delete-materializes-playbook-before-execution-and-keeps-delete-semantics
+ (let [tmp (.toFile (java.nio.file.Files/createTempDirectory "neon-delete-render-" (make-array java.nio.file.attribute.FileAttribute 0)))
+       base (assoc (fixture) :green/event :delete :workdir (.getPath tmp))
+       cluster (:cluster (planning/plan-deployment base (topology/topology base) (topology/requirements base)))
+       opts (assoc base :colors-compute/cluster cluster)
+       nodes (mapv :node_id (:nodes cluster))
+       output (str (str/join "\n" (map #(str "    \"msg\": \"WRITERS_STOPPED " % " PASS independent absence of Neon containers and writer processes\"") nodes))
+                   "\nPLAY RECAP\n"
+                   (str/join "\n" (map #(str % " : ok=2 changed=0 unreachable=0 failed=0 skipped=0 rescued=0 ignored=0") nodes)))
+       calls (atom 0)]
+  (try
+   (with-redefs [process/run-with-timeout
+                 (fn [command run-opts _]
+                  (swap! calls inc)
+                  (is (= ["ansible-playbook" "-i" "inventory.json" "cleanup.yml"] command))
+                  (is (.isFile (io/file (:dir run-opts) "cleanup.yml")))
+                  (is (str/includes? (slurp (io/file (:dir run-opts) "cleanup.yml")) "WRITERS_STOPPED"))
+                  (let [inventory (json/parse-string (slurp (io/file (:dir run-opts) "inventory.json")) true)]
+                   (is (= 5 (reduce + (map #(count (:hosts %)) (vals (get-in inventory [:all :children])))))))
+                  {:exit 0 :out output :err ""})]
+    (let [result (tools/run-play opts "cleanup.yml" false)]
+     (is (= 1 @calls))
+     (is (= 0 (:green/exit result)))
+     (is (= :delete (:green/event result)))
+     (is (storage/writer-proof? result))
+     (is (= output (slurp (io/file tmp (:profile opts) "writer-stop-evidence.txt"))))))
+   (with-redefs [process/run-with-timeout (fn [& _] {:exit 0 :out "PLAY RECAP\n" :err ""})]
+    (let [result (tools/run-play opts "cleanup.yml" false)]
+     (is (= 1 (:green/exit result)))
+     (is (= :delete (:green/event result)))
+     (is (not (storage/writer-proof? result)))))
+   (finally (doseq [file (reverse (file-seq tmp))] (io/delete-file file true))))))
