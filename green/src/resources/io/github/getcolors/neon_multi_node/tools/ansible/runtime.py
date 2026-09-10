@@ -21,7 +21,7 @@ def retry(fn,timeout=180):
         try:
             value=fn()
             if value: return value
-        except Exception as e: last=type(e).__name__
+        except Exception as e: last=type(e).__name__+': '+str(e)[:800]
         time.sleep(2)
     raise RuntimeError('condition timed out: '+str(last))
 def password(role): return (P/'secrets'/ (role+'_password')).read_text().strip()

@@ -17,7 +17,7 @@
 
 (def defaults {:provider-compute validate/default-compute-provider :provider-dns "cloudflare"
                :provider-backend "s3" :compute-prevent-destroy true
-               :neon-storage-managed true :cloudflare-proxied false :workdir ".colors"})
+               :neon-pg-version 17 :neon-storage-managed true :cloudflare-proxied false :workdir ".colors"})
 
 (def state-events #{:delete :rehearse :describe})
 (defn start-step

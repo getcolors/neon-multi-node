@@ -76,3 +76,11 @@
  (let [r (workflow/start-step (assoc (fixture) :green/event :delete :compute-prevent-destroy false) {})]
  (is (= 0 (:green/exit r)))
  (is (true? (:neon-multi-node/finalize-only r)))))))
+
+(deftest postgres-major-contract
+ (is (= 17 (:neon-pg-version workflow/defaults)))
+ (is (empty? (validate/state-errors (fixture))))
+ (doseq [major [nil 16 18 "17"]]
+  (is (some #(re-find #"neon-pg-version must be 17" %) (validate/state-errors (assoc (fixture) :neon-pg-version major)))))
+ (is (some #(re-find #"compute-node-v17" %) (validate/state-errors (assoc (fixture) :neon-compute-image "ghcr.io/neondatabase/compute-node-v16:release@sha256:166022a72bf9983eba96d061d794f4740edbd4c3301e66202c1180acce9a323c"))))
+ (is (= 0 (:green/exit (workflow/start-step (assoc (dissoc (fixture) :neon-pg-version) :green/event :create :green/dry-run true) {})))))

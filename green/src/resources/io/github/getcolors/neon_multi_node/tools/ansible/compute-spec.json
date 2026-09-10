@@ -1,11 +1,9 @@
 {
     "spec": {
         "format_version": 1.0,
-
         "timestamp": "2022-10-12T18:00:00.000Z",
         "operation_uuid": "0f657b36-4b0f-4a2d-9c2e-1dcd615e7d8c",
         "suspend_timeout_seconds": -1,
-
         "cluster": {
             "cluster_id": "<{ profile }>",
             "name": "<{ profile }>",
@@ -146,8 +144,9 @@
                 }
             ]
         },
-
-        "delta_operations": [
+        "delta_operations": [],
+        "features": [
+            "tls_experimental"
         ]
     },
     "compute_ctl_config": {

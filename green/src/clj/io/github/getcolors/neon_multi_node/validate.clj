@@ -7,6 +7,8 @@
 (def required [:profile :neon-image :neon-compute-image :neon-tenant-id :neon-timeline-id :neon-database :neon-role :neon-r2-bucket :neon-r2-region :neon-r2-endpoint :neon-r2-prefix :neon-host :cloudflare-zone])
 (defn state-errors [opts]
  (vec (concat (for [k required :when (str/blank? (str (get opts k)))] (str k " is required"))
+ (when-not (= 17 (:neon-pg-version opts)) ["neon-pg-version must be 17; this package supports PostgreSQL 17 only"])
+ (when-not (re-find #"(?:^|/)compute-node-v17:" (str (:neon-compute-image opts))) ["neon-compute-image must identify compute-node-v17 to match neon-pg-version"])
  (when-not (= "cloudflare" (:provider-dns opts)) ["provider-dns must be cloudflare"])
  (when-not (false? (:cloudflare-proxied opts)) ["PostgreSQL DNS must be unproxied"])
  (for [k [:neon-image :neon-compute-image] :when (not (re-find #"@sha256:[0-9a-f]{64}$" (str (get opts k))))] (str k " must be pinned by digest"))
