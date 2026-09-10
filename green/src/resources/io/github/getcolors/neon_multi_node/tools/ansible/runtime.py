@@ -73,7 +73,8 @@ def render():
             if s['name']=='neon.safekeepers': s['value']=','.join(x+':5454' for x in C['safekeepers'])
             if s['name']=='neon.pageserver_connstring': s['value']='host='+C['pageserver']+' port=6400'
         settings.append({'name':'hba_file','value':'/etc/neon/pg_hba.conf','vartype':'string'})
-        spec['compute_ctl_config']['tls']={'key_path':'/etc/neon/tls/privkey.pem','cert_path':'/etc/neon/tls/fullchain.pem'}
+        # Native PostgreSQL TLS supports trusted ACME chains. The pinned compute_ctl
+        # TLS copier rejects ECDSA-SHA384 certificate signatures before PostgreSQL starts.
         changed=write(P/'config.json',spec,0o400,1000)
         write(P/'pg_hba.conf','local all all trust\nhost all all 127.0.0.1/32 trust\nhost all all ::1/128 trust\nhostnossl all all 0.0.0.0/0 reject\nhostnossl all all ::/0 reject\nhostssl all all 0.0.0.0/0 scram-sha-256\nhostssl all all ::/0 scram-sha-256\n',0o444)
         services['compute']={'image':C['compute_image'],'restart':'unless-stopped','ports':['55433:55433','127.0.0.1:3080:3080'],'volumes':['/etc/neon/config.json:/var/db/postgres/configs/config.json:ro','/etc/neon/pg_hba.conf:/etc/neon/pg_hba.conf:ro','/etc/neon/tls:/etc/neon/tls:ro'],'tmpfs':['/tmp'],'environment':{'OTEL_SDK_DISABLED':'true'},'entrypoint':['/usr/local/bin/compute_ctl'],'command':['--pgdata','/var/db/postgres/compute','-C','postgresql://cloud_admin@localhost:55433/postgres','-b','/usr/local/bin/postgres','--compute-id',C['profile'],'--config','/var/db/postgres/configs/config.json']}

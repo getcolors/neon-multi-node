@@ -84,3 +84,25 @@
   (is (some #(re-find #"neon-pg-version must be 17" %) (validate/state-errors (assoc (fixture) :neon-pg-version major)))))
  (is (some #(re-find #"compute-node-v17" %) (validate/state-errors (assoc (fixture) :neon-compute-image "ghcr.io/neondatabase/compute-node-v16:release@sha256:166022a72bf9983eba96d061d794f4740edbd4c3301e66202c1180acce9a323c"))))
  (is (= 0 (:green/exit (workflow/start-step (assoc (dissoc (fixture) :neon-pg-version) :green/event :create :green/dry-run true) {})))))
+(require '[io.github.getcolors.neon-multi-node.tools :as tools]
+         '[clojure.string :as str]
+         '[green.tofu :as tofu])
+(deftest current-run-writer-proof
+ (let [opts (fixture)
+       nodes (mapv :node_id (compute/expand (topology/topology opts)))
+       cluster (:cluster (planning/plan-deployment opts (topology/topology opts) (topology/requirements opts)))
+       opts (assoc opts :colors-compute/cluster cluster)
+       output (str (str/join "\n" (map #(str "    \"msg\": \"WRITERS_STOPPED " % " PASS independent absence of Neon containers and writer processes\"") nodes))
+                   "\nPLAY RECAP\n"
+                   (str/join "\n" (map #(str % " : ok=2 changed=0 unreachable=0 failed=0 skipped=0 rescued=0 ignored=0") nodes)))]
+  (is (= (set nodes) (tools/cleanup-proof opts output)))
+  (is (thrown? Exception (tools/cleanup-proof opts (str/replace output "WRITERS_STOPPED compute-0" "WRITERS_STOPPED unknown-0"))))
+  (is (thrown? Exception (tools/cleanup-proof opts (str/replace output "failed=0" "failed=1"))))
+  (is (thrown? Exception (tools/cleanup-proof opts (str/replace output "    \"msg\":" "echo \"msg\":"))))
+  (is (false? (storage/writer-proof? opts)))
+  (is (false? (storage/writer-proof? (assoc opts :neon-multi-node/writers-stopped #{"compute-0"}))))
+  (is (true? (storage/writer-proof? (assoc opts :neon-multi-node/writers-stopped (set nodes)))))
+  (let [called (atom false)]
+   (with-redefs [tofu/tofu-with-spec (fn [& _] (reset! called true) {:green/exit 0})]
+    (is (= 1 (:green/exit (storage/step (assoc opts :green/event :delete)))))
+    (is (false? @called))))))

@@ -141,13 +141,25 @@
                     "name": "cron.database",
                     "value": "postgres",
                     "vartype": "string"
+                },
+                {
+                    "name": "ssl",
+                    "value": "on",
+                    "vartype": "bool"
+                },
+                {
+                    "name": "ssl_cert_file",
+                    "value": "/etc/neon/tls/fullchain.pem",
+                    "vartype": "string"
+                },
+                {
+                    "name": "ssl_key_file",
+                    "value": "/etc/neon/tls/privkey.pem",
+                    "vartype": "string"
                 }
             ]
         },
-        "delta_operations": [],
-        "features": [
-            "tls_experimental"
-        ]
+        "delta_operations": []
     },
     "compute_ctl_config": {
         "jwks": {

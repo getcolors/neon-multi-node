@@ -31,6 +31,16 @@ class SQLGates(unittest.TestCase):
             self.assertEqual(env['PGPASSFILE'],'/dev/null')
             self.assertNotIn('HOME',env)
             self.assertIn('-w',execute.call_args.args[0])
+class PinnedTLSContract(unittest.TestCase):
+    def test_native_tls_feature_is_enabled_for_pinned_compute(self):
+        import json
+        spec=json.loads((RUNTIME.parent/'compute-spec.json').read_text())
+        settings={item['name']:item['value'] for item in spec['spec']['cluster']['settings']}
+        self.assertEqual(settings['ssl'],'on')
+        self.assertEqual(settings['ssl_cert_file'],'/etc/neon/tls/fullchain.pem')
+        self.assertEqual(settings['ssl_key_file'],'/etc/neon/tls/privkey.pem')
+        self.assertNotIn('tls',spec['compute_ctl_config'],
+                         'pinned compute_ctl TLS copier rejects ACME ECDSA-SHA384 signatures')
 class QuorumWitnesses(unittest.TestCase):
     def test_each_outage_gets_distinct_durable_witness_and_old_value_cannot_pass(self):
         import tempfile,json

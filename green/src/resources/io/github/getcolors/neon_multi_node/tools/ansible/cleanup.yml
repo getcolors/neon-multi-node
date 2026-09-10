@@ -33,4 +33,8 @@
                 raise SystemExit('A writer or uninspectable container runtime is still running')
         print('PASS independent absence of Neon containers and writer processes')
         PY
+      register: writer_checks
       changed_when: false
+    - name: Report independent writer absence for this host
+      ansible.builtin.debug:
+        msg: "WRITERS_STOPPED {{ inventory_hostname }} {{ writer_checks.stdout }}"

@@ -161,6 +161,15 @@
  (into [(spec (neon-template "ansible" "ansible.cfg") (str dir "/ansible.cfg") data)
  (raw-spec (str dir "/inventory.json") (inventory opts (hosts opts)))]
  (map #(spec (template "ansible" %) (str dir "/" %) data) ansible-files))))
+(defn cleanup-proof [opts output]
+ (let [expected (set (map :node_id (hosts opts)))
+       recap (ansible/parse-recap output)
+       reported (set (map second (re-seq #"(?m)^\s*\"msg\": \"WRITERS_STOPPED ([a-z0-9-]+) PASS independent absence of Neon containers and writer processes\"\s*$" output)))]
+  (when-not (and (= 5 (count expected)) (= expected reported) (= expected (set (keys recap)))
+    (every? (fn [[_ counters]] (and (pos? (:ok counters)) (every? #(zero? (get counters % -1)) [:failed :unreachable :rescued :ignored]))) recap))
+   (throw (ex-info "writer stop proof incomplete; storage deletion refused" {})))
+  expected))
+
 (defn run-play [opts playbook credentials?]
  (let [dir (tool-dir opts ansible-tool)]
  (if (= :build (:green/event opts))
@@ -169,7 +178,16 @@
  env (merge {"ANSIBLE_HOST_KEY_CHECKING" "True" "ANSIBLE_SSH_ARGS" "-o StrictHostKeyChecking=accept-new"}
  (when credentials? (storage/credential-env opts)))
  result (process/run-with-timeout ["ansible-playbook" "-i" "inventory.json" playbook] {:dir dir :extra-env env} 7200000)]
- (if (zero? (:exit result)) (assoc rendered :green/exit 0 :ansible/recap (ansible/parse-recap (:out result)))
+ (if (zero? (:exit result))
+ (if (= playbook "cleanup.yml")
+ (try
+  (let [stopped (cleanup-proof opts (:out result))
+        target (io/file (:workdir opts) (:profile opts) "writer-stop-evidence.txt")]
+   (io/make-parents target)
+   (spit target (:out result))
+   (assoc rendered :green/exit 0 :ansible/recap (ansible/parse-recap (:out result)) :neon-multi-node/writers-stopped stopped))
+  (catch Exception e (assoc rendered :green/exit 1 :green/err (ex-message e))))
+ (assoc rendered :green/exit 0 :ansible/recap (ansible/parse-recap (:out result))))
  (assoc rendered :green/exit 1 :green/err (str "Ansible failed: " (:out result) (:err result))))))))
 (defn ansible-step [opts]
  (if (and (= :delete (:green/event opts)) (nil? (:colors-compute/cluster opts)))

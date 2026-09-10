@@ -6,7 +6,9 @@
             [green.cli :as cli]
             [green.process :as process]
             [green.scaffold :as scaffold]
-            [green.tofu :as tofu]))
+            [green.tofu :as tofu]
+            [io.github.getcolors.compute :as compute]
+            [io.github.getcolors.neon-multi-node.topology :as topology]))
 
 (def tool "neon-multi-node-storage")
 (defn managed? [opts] (true? (:neon-storage-managed opts)))
@@ -42,11 +44,16 @@
             ;; 403, network failures, and a successful probe all fail closed.
             (when-not (and (pos? (:exit result)) (re-find #"\(404\)|Not Found|NoSuchBucket" (str (:err result))))
               (throw (ex-info "managed storage refuses to adopt an existing or inaccessible bucket" {})))))))))
+(defn writer-proof? [opts]
+ (= (set (map :node_id (compute/expand (topology/topology opts))))
+    (:neon-multi-node/writers-stopped opts)))
 (defn step [opts]
   (if-not (managed? opts) (assoc opts :green/exit 0)
     (try
       (let [documents (specs opts)
             event (:green/event opts)]
+        (when (and (= :delete event) (not (:green/dry-run opts)) (not (writer-proof? opts)))
+          (throw (ex-info "current-run writer stop proof required before storage deletion" {})))
         (when (= :create event)
           (scaffold/scaffold opts documents)
           (ownership-preflight! opts))
