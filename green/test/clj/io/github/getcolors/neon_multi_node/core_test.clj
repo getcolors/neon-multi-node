@@ -29,7 +29,8 @@
          '[io.github.getcolors.compute-planning :as planning]
          '[io.github.getcolors.compute-inspection :as inspection]
          '[io.github.getcolors.neon-multi-node.validate :as validate]
-         '[io.github.getcolors.neon-multi-node.ssh-config :as ssh-config])
+         '[io.github.getcolors.neon-multi-node.ssh-config :as ssh-config]
+         '[io.github.getcolors.compute-managed-backend :as managed-backend])
 (defn fixture []
  (walk/postwalk (fn [x] (if (and (sequential? x) (not (vector? x))) (vec x) x))
   (yaml/parse-string (slurp "../test/fixtures/colors.yml"))))
@@ -67,10 +68,13 @@
  (is (seq (validate/state-errors (assoc (fixture) k value)))))
  (is (seq (validate/state-errors (assoc (fixture) :neon-r2-bucket (:s3-bucket (fixture)))))))
 (deftest unreadable-state-never-becomes-absent
- (with-redefs [inspection/read-deployment (fn [& _] {:status "error"})]
+ (with-redefs [inspection/read-deployment (fn [& _] {:status "error"})
+               managed-backend/finalize-backend! (fn [& _] (throw (Exception. "access denied")))]
  (let [r (workflow/start-step (assoc (fixture) :green/event :delete :compute-prevent-destroy false) {})]
- (is (= 1 (:green/exit r)))
- (is (nil? (:neon-multi-node/finalize-only r)))))
+ (is (= 0 (:green/exit r)))
+ (is (true? (:neon-multi-node/finalize-only r)))
+ (is (nil? (:neon-multi-node/already-destroyed r)))
+ (is (= 1 (:green/exit (workflow/backend-finalize-step r))))))
  (doseq [status ["absent" "destroyed"]]
  (with-redefs [inspection/read-deployment (fn [& _] {:status status})]
  (let [r (workflow/start-step (assoc (fixture) :green/event :delete :compute-prevent-destroy false) {})]
@@ -142,3 +146,31 @@
      (is (= :delete (:green/event result)))
      (is (not (storage/writer-proof? result)))))
    (finally (doseq [file (reverse (file-seq tmp))] (io/delete-file file true))))))
+
+(deftest finalized-managed-backend-routes-to-authoritative-finalizer-without-preflight-mutation
+ (let [calls (atom 0)]
+  (with-redefs [inspection/read-deployment (fn [& _] {:status "error"})
+                managed-backend/finalize-backend! (fn [& _] (swap! calls inc) {:status "absent"})]
+   (let [result (workflow/start-step (assoc (fixture) :green/event :delete :compute-prevent-destroy false) {})]
+    (is (zero? @calls))
+    (is (= 0 (:green/exit result)))
+    (is (true? (:neon-multi-node/finalize-only result)))
+    (is (nil? (:neon-multi-node/already-destroyed result)))
+    (is (= 0 (:green/exit (workflow/backend-finalize-step result))))
+    (is (= 1 @calls)))))
+ (doseq [refusal ["access denied" "ownership mismatch" "compute must retire" "live state remains"]]
+  (with-redefs [inspection/read-deployment (fn [& _] {:status "error"})
+                managed-backend/finalize-backend! (fn [& _] (throw (Exception. refusal)))]
+   (let [result (workflow/start-step (assoc (fixture) :green/event :delete :compute-prevent-destroy false) {})]
+    (is (= 1 (:green/exit (workflow/backend-finalize-step result))))
+    (is (not (:neon-multi-node/already-destroyed result))))))
+ (doseq [extra [{:s3-bucket-mode "external" :green/event :delete}
+               {:green/event :rehearse} {:green/event :describe}]]
+  (with-redefs [inspection/read-deployment (fn [& _] {:status "error"})
+                managed-backend/finalize-backend! (fn [& _] (throw (Exception. "must not finalize")))]
+   (let [result (workflow/start-step (merge (fixture) {:compute-prevent-destroy false} extra) {})]
+    (is (= 1 (:green/exit result)))
+    (is (nil? (:neon-multi-node/finalize-only result))))))
+ (with-redefs [inspection/read-deployment (fn [& _] (throw (Exception. "guard must prevent inspection")))
+               managed-backend/finalize-backend! (fn [& _] (throw (Exception. "guard must prevent finalization")))]
+  (is (= 2 (:green/exit (workflow/start-step (assoc (fixture) :green/event :delete) {}))))))

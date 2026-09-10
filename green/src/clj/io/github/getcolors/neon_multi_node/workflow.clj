@@ -41,6 +41,11 @@
                               (= "present" (:status result)) (let [ready (cond-> (assoc opts :colors-compute/cluster (:cluster result) :colors-compute/shared (:shared result) :green/exit 0)
                                                                (get-in result [:key :private_key_path]) (assoc :ssh-private-key-path (get-in result [:key :private_key_path])))]
                                                              (if (and (= event :rehearse) (storage/managed? opts)) (storage/read-credentials! ready) ready))
+                              (and (= event :delete) (= "managed" (:s3-bucket-mode opts)) (= "error" (:status result)))
+                              ;; Inspection cannot distinguish finalized NoSuchBucket from
+                              ;; unreadable state. Route to the existing authoritative finalizer;
+                              ;; it must prove absence or owned retirement before success.
+                              (assoc opts :neon-multi-node/finalize-only true :green/exit 0)
                               :else (assoc opts :green/exit 1 :green/err "compute state unavailable; legacy monolithic state requires explicit migration")))
                           (and real? (= event :create)) (ssh-config/preflight! opts)
                           :else (assoc (ssh/with-machine-key opts) :green/exit 0)))} env)))
