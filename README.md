@@ -59,8 +59,24 @@ retires the managed state bucket and local keypair. **This deletes the database.
 Export data first if it must survive. Do not add object-expiration lifecycle
 rules to Neon storage; objects may still be referenced by live timelines.
 
-Build evidence and measured recovery results are recorded in the companion
-AWS deployment repository after live verification.
+## Verified deployment
+
+The [AWS verification report](https://github.com/getcolors/neon-multi-node-aws/blob/main/verification.md)
+records the live build on September 10, 2026: PostgreSQL 17.5 across five EC2
+instances and six containers in one availability zone. Trusted public TLS,
+authentication and network isolation, fresh S3 WAL uploads, and reconvergence
+with unchanged machine, disk and container identities passed.
+
+Recovery tests replaced compute, exercised every single-safekeeper outage,
+withheld write acknowledgement without quorum, restarted the broker, reattached
+a wiped pageserver cache from S3 and surviving WAL, and rebuilt one empty
+safekeeper. Independent external queries retained the random deployment witness
+and every recorded acknowledged outage write. A timed-out write was present
+after quorum returned: a client timeout does not establish rollback.
+
+Use the report's final inventory for the test deployment's resource status.
+These results do not prove availability-zone survival, automatic compute or
+pageserver failover, or recovery from simultaneous loss of all storage machines.
 
 ## Implementation dependencies
 
