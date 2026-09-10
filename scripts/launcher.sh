@@ -3,7 +3,17 @@
 set -euo pipefail
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 fixture_dir=$(mktemp -d)
-trap 'rm -rf "$fixture_dir"' EXIT
+cleanup() {
+  result=$?
+  if [[ "$result" -ne 0 ]]; then
+    for logfile in "$fixture_dir"/*.log "$fixture_dir"/nested/deeper/*.log; do
+      [[ ! -f "$logfile" ]] || tail -80 "$logfile"
+    done
+  fi
+  rm -rf "$fixture_dir"
+  exit "$result"
+}
+trap cleanup EXIT
 for color in green red blue; do
 cp "$repo/skills/package-neon-multi-node-$color/$color" "$fixture_dir/$color"
 chmod +x "$fixture_dir/$color"
