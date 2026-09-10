@@ -1,22 +1,29 @@
 ---
-name: package-neon-multi-node-green
-description: Deploy and operate self-hosted Neon Postgres 17 across separate compute and pageserver machines plus three safekeepers, using Colors Green and colors-compute, managed AWS S3 storage and state, Cloudflare DNS, and native PostgreSQL TLS. Use for neon-multi-node colors.yml deployments, convergence, recovery rehearsals, inspection, and guarded teardown.
+name: package-neon-multi-node-blue
+description: Deploy and operate self-hosted Neon Postgres 17 across separate compute and pageserver machines plus three safekeepers, using Colors Blue and colors-compute, managed AWS S3 storage and state, Cloudflare DNS, and native PostgreSQL TLS. Use for neon-multi-node colors.yml deployments, convergence, recovery rehearsals, inspection, and guarded teardown.
 ---
 
 # Neon Multi-Node Package Skill
 
 Operate the five-machine topology in `getcolors/neon-multi-node`: compute-0,
 pageserver-0 (also storage broker), and safekeeper-0/1/2. This skill supplies the
-Green runtime; sibling Red and Blue skills use the same desired state and state
+Blue/Python runtime; sibling Green and Red skills use the same desired state and state
 addresses. Run one lifecycle operation per profile at a time. The package pins
 Colors and colors-compute to immutable Git commits.
+
+Install Python 3.11 or newer and `uv`, plus the shared operator tools: OpenTofu,
+Ansible, AWS CLI 2 with conditional S3 writes, OpenSSH and PostgreSQL client.
+The copied executable uses `uv run --script`; its PEP 723 metadata pins the
+package and SDK dependencies. Local source development can use
+`NEON_MULTI_NODE_LIB_ROOT=/path/to/neon-multi-node`, while published validation
+must run without that override.
 
 Install into the deployment repository:
 
 ```sh
-npx skills add https://github.com/getcolors/neon-multi-node --skill package-neon-multi-node-green
-cp .agents/skills/package-neon-multi-node-green/green ./green
-chmod +x green
+npx skills add https://github.com/getcolors/neon-multi-node --skill package-neon-multi-node-blue
+cp .agents/skills/package-neon-multi-node-blue/blue ./blue
+chmod +x blue
 ```
 
 Keep the root launcher synchronized after each skill update. Start from the
@@ -28,16 +35,16 @@ independent deployment. Never reuse an existing profile to point at fresh state.
 Before live actions, run:
 
 ```sh
-./green build
-./green create --dry-run
+./blue build
+./blue create --dry-run
 ```
 
 These paths render deterministic artifacts without contacting providers or
 accessing SSH files. Resolve all validation errors before continuing. `.colors/`
 is generated output; edit desired state or package source, never generated files.
 
-Use `./green create` to converge, `./green describe` to inspect, and
-`./green rehearse` for disruptive data-recovery verification. Respect the user's
+Use `./blue create` to converge, `./blue describe` to inspect, and
+`./blue rehearse` for disruptive data-recovery verification. Respect the user's
 authorized resources and operations. Rehearsal is intended for test deployments.
 
 Credentials live in ignored private environment files. AWS uses its ambient SDK
@@ -72,7 +79,7 @@ Deletion destroys application data. Keep `compute-prevent-destroy: true` in
 committed desired state. For an explicitly authorized teardown only:
 
 ```sh
-COLORS_PAR_COMPUTE_PREVENT_DESTROY=false ./green delete
+COLORS_PAR_COMPUTE_PREVENT_DESTROY=false ./blue delete
 ```
 
 The DAG must prove every writer stopped before purging the application bucket,
@@ -81,7 +88,11 @@ failure, and finalize the state bucket only after complete retirement. Confirm
 cloud absence independently and exercise repeated deletion for a lifecycle test.
 
 Read the [package README](https://github.com/getcolors/neon-multi-node#readme)
-for operation and recovery limits, the [Green SDK](https://github.com/getcolors/green)
+for operation and recovery limits, the [Blue SDK](https://github.com/getcolors/blue)
 for workflow semantics, and [colors-compute](https://github.com/getcolors/colors-compute)
 for the compute contract. The [AWS deployment](https://github.com/getcolors/neon-multi-node-aws)
 records what was actually verified at the published pins.
+
+Blue lifecycle verification must be recorded separately from the existing Green
+live evidence. A successful offline build or cross-color render comparison does
+not establish live AWS lifecycle support at a new pin.

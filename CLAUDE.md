@@ -1,7 +1,7 @@
 # Repository instructions
 
 Read the workspace instructions at `../workspace/CLAUDE.md`.
-This Green Package Skill operates five Neon machines through a directly pinned
+This three-runtime Package Skill operates five Neon machines through a directly pinned
 `colors-compute` dependency. The package owns topology, application templates,
 managed Neon S3 storage/IAM, Cloudflare DNS, local SSH aliases and acceptance.
 Compute Terraform, provider selection, backend bucket bootstrap and retirement,
@@ -20,7 +20,8 @@ rejection in HBA. Keep immutable storage and compute image digests paired with
 the source versions used to validate their configuration.
 
 Build and dry-run must work without credentials, state reads or local SSH access.
-Run Green tests, golden comparisons, syntax checks and launcher tests before
+Run each runtime's tests, Red typechecking, golden comparisons, three-color
+parity, syntax checks and launcher tests before
 publication. Use `NEON_MULTI_NODE_LIB_ROOT` during development; final launchers
 must resolve an actual pushed commit. Root deployment launchers must match their
 installed payload copies. Write no credentials to output, tests or evidence.

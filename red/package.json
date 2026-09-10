@@ -1,0 +1,20 @@
+{
+  "name": "package-neon-multi-node-red-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "red": "github:getcolors/red#7636bee6a7575485ebaf621f4b1834bdcea59738",
+    "colors-compute-red": "github:getcolors/colors-compute#09ec539e75dc21c4dafb019eb8f9da276e695f6f"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "red": "github:getcolors/red#7636bee6a7575485ebaf621f4b1834bdcea59738"
+  }
+}

@@ -1,6 +1,7 @@
 # Neon Multi-Node
 
-A Green Colors Package Skill for self-hosted Neon Postgres 17 across five
+A Colors Package Skill in Green (Clojure/Babashka), Red (TypeScript/Bun), and
+Blue (Python/uv) for self-hosted Neon Postgres 17 across five
 machines: one compute node, one pageserver with a storage broker, and three
 safekeepers with separate disks. Compute and network resources are managed by
 [colors-compute](https://github.com/getcolors/colors-compute).
@@ -22,6 +23,12 @@ chmod +x green
 ./green describe
 ./green rehearse
 ```
+
+Choose `package-neon-multi-node-red` and its `red` launcher, or
+`package-neon-multi-node-blue` and its `blue` launcher, for the other runtimes.
+All three read the same `colors.yml`, use the same state addresses and execute
+their native Colors graphs through matching `colors-compute` implementations.
+Run only one lifecycle operation for a profile at a time.
 
 Use the [AWS deployment](https://github.com/getcolors/neon-multi-node-aws)
 for complete desired state. Keep credentials in ignored `.envrc.private`; the
@@ -80,10 +87,13 @@ pageserver failover, or recovery from simultaneous loss of all storage machines.
 
 ## Implementation dependencies
 
-The [Green SDK](https://github.com/getcolors/green) supplies execution graphs,
-scaffolding and provider boundaries. [colors-compute](https://github.com/getcolors/colors-compute)
+The matching [Green](https://github.com/getcolors/green),
+[Red](https://github.com/getcolors/red), or [Blue](https://github.com/getcolors/blue)
+SDK supplies execution graphs, scaffolding and provider boundaries.
+[colors-compute](https://github.com/getcolors/colors-compute)
 owns machine, network, SSH keypair and state-backend lifecycles. Exact dependency
-commits live in [green/deps.edn](green/deps.edn).
+commits live in [green/deps.edn](green/deps.edn),
+[red/package.json](red/package.json), and [blue/pyproject.toml](blue/pyproject.toml).
 
 The package reuses the pinned [Neon package](https://github.com/getcolors/neon)
 Ansible configuration and local inventory templates. Its multi-node runtime,

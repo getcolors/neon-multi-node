@@ -1,0 +1,40 @@
+---
+- name: Stop every writer before managed storage deletion
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stop runtime when present and independently prove no writers
+      ansible.builtin.shell: |
+        python3 - <<'PY'
+        import json, pathlib, shutil, subprocess
+        docker=shutil.which('docker')
+        compose=pathlib.Path('/opt/neon/compose.json')
+        if docker and compose.exists():
+            subprocess.run([docker,'compose','-f',str(compose),'down'],check=True,capture_output=True)
+        if docker:
+            result=subprocess.run([docker,'ps','--format','json'],text=True,capture_output=True)
+            if result.returncode:
+                raise SystemExit('Cannot inspect Docker; writer absence is unproven')
+            for line in result.stdout.splitlines():
+                item=json.loads(line)
+                identity=' '.join(str(item.get(k,'')) for k in ['Image','Names','Labels']).lower()
+                if 'neon' in identity or 'compute-node' in identity:
+                    raise SystemExit('A Neon container is still running')
+        writers={'pageserver','safekeeper','storage_broker','compute_ctl','postgres'}
+        for proc in pathlib.Path('/proc').iterdir():
+            if not proc.name.isdigit():
+                continue
+            try:
+                name=(proc/'comm').read_text().strip()
+            except FileNotFoundError:
+                continue
+            if name in writers or (not docker and name.startswith('containerd-shim')):
+                raise SystemExit('A writer or uninspectable container runtime is still running')
+        print('PASS independent absence of Neon containers and writer processes')
+        PY
+      register: writer_checks
+      changed_when: false
+    - name: Report independent writer absence for this host
+      ansible.builtin.debug:
+        msg: "WRITERS_STOPPED {{ inventory_hostname }} {{ writer_checks.stdout }}"

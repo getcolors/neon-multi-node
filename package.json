@@ -1,0 +1,32 @@
+{
+  "name": "package-neon-multi-node-red",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./red/src/index.ts"
+  },
+  "files": [
+    "red/src",
+    "red/resources"
+  ],
+  "dependencies": {
+    "colors-compute-red": "github:getcolors/colors-compute#09ec539e75dc21c4dafb019eb8f9da276e695f6f",
+    "red": "github:getcolors/red#7636bee6a7575485ebaf621f4b1834bdcea59738"
+  },
+  "peerDependencies": {
+    "red": "*"
+  },
+  "peerDependenciesMeta": {
+    "red": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "test": "cd red && bun test",
+    "typecheck": "cd red && bun run typecheck"
+  },
+  "overrides": {
+    "red": "github:getcolors/red#7636bee6a7575485ebaf621f4b1834bdcea59738"
+  }
+}
