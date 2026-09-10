@@ -19,7 +19,7 @@
 
 ;; Managed by `bb pin` — do not edit by hand. An initial nil is intentional:
 ;; the repository must be committed and pushed before a real SHA can be stamped.
-(def ^:private neon-multi-node-sha "2342e7020894e6c0c51e2594f0fb4a11684f01df")
+(def ^:private neon-multi-node-sha "910862079124a533dfc1f382d888210038c595e7")
 
 (def ^:private neon-multi-node-git-url "https://github.com/getcolors/neon-multi-node.git")
 (def ^:private green-git-url "https://github.com/getcolors/green.git")
