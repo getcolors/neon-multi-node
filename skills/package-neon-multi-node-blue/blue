@@ -1,7 +1,15 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = []
+# dependencies = ["package-neon-multi-node-blue", "blue", "colors-compute-blue @ git+https://github.com/getcolors/colors-compute.git@09ec539e75dc21c4dafb019eb8f9da276e695f6f#subdirectory=blue"]
+#
+# [tool.uv.sources]
+# package-neon-multi-node-blue = { git = "https://github.com/getcolors/neon-multi-node.git", rev = "038e93d524552ef36fb0fff5f306352e68283bff", subdirectory = "blue" }
+# package-neon-blue = { git = "https://github.com/getcolors/neon.git", rev = "9f8ccc18e218ea3b6ce293a470afd61b19e81639", subdirectory = "blue" }
+# blue = { git = "https://github.com/getcolors/blue.git", rev = "e29a7fc5a7a2895eacb882fc65520c2cdbab96c9" }
+#
+# [tool.uv]
+# override-dependencies = ["blue @ git+https://github.com/getcolors/blue.git@e29a7fc5a7a2895eacb882fc65520c2cdbab96c9", "package-once-blue @ git+https://github.com/getcolors/once.git@10e525ae7c37130ab4d532b91c8d2ead94557cc8#subdirectory=blue", "package-neon-blue @ git+https://github.com/getcolors/neon.git@9f8ccc18e218ea3b6ce293a470afd61b19e81639#subdirectory=blue"]
 # ///
 #
 # Managed by `bb pin` — do not edit by hand, and never invent a SHA.
