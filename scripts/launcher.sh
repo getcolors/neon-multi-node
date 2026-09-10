@@ -22,6 +22,10 @@ mkdir -p "$fixture_dir/nested/deeper"
 runner_env=(env -i "PATH=$PATH" "HOME=$HOME")
 if [[ "${1:-}" != "--published" ]]; then
   runner_env+=("NEON_MULTI_NODE_LIB_ROOT=$repo")
+else
+  runner_env+=("XDG_CACHE_HOME=$fixture_dir/cache/$color"
+    "BUN_INSTALL_CACHE_DIR=$fixture_dir/bun-cache/$color"
+    "UV_CACHE_DIR=$fixture_dir/uv-cache/$color")
 fi
 (cd "$fixture_dir" && "${runner_env[@]}" ./"$color" build > build.log 2>&1)
 (cd "$fixture_dir/nested/deeper" && "${runner_env[@]}" ../../"$color" build > nested.log 2>&1)
