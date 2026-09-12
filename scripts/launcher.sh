@@ -14,6 +14,28 @@ cleanup() {
   exit "$result"
 }
 trap cleanup EXIT
+red_launcher="$repo/skills/package-neon-multi-node-red/red"
+# colors-compute-red declares the Red SDK as a peer, so a cold launcher cache
+# installs the SDK only because PINS names it. The pin must be the one
+# red/package.json tests against, and a cold cache must actually resolve it:
+# the working-tree builds below reuse red/node_modules and cannot see a
+# missing peer.
+red_sdk_sha=$(grep -oE '"red": "github:getcolors/red#[0-9a-f]{40}"' "$repo/red/package.json" | grep -oE '[0-9a-f]{40}' | head -1)
+[[ -n $red_sdk_sha ]] || { echo 'red/package.json carries no Red SDK pin' >&2; exit 1; }
+grep -q "\"red\": \"github:getcolors/red#$red_sdk_sha\"" "$red_launcher" || { echo 'red payload PINS the Red SDK at a different commit than red/package.json' >&2; exit 1; }
+echo "PASS red payload PINS the Red SDK at the red/package.json commit"
+mkdir "$fixture_dir/red-cold"
+cp "$red_launcher" "$fixture_dir/red-cold/red"; chmod +x "$fixture_dir/red-cold/red"
+sed "s#WORKDIR#$fixture_dir/red-cold/rendered#" "$repo/test/fixtures/colors.yml" > "$fixture_dir/red-cold/colors.yml"
+# One retry: a cold install fetches three GitHub tarballs and a transient
+# fetch failure is not a payload defect. Each attempt starts from empty caches.
+cold_ok=0
+for attempt in 1 2; do
+  rm -rf "$fixture_dir/red-cold/xdg" "$fixture_dir/red-cold/bun" "$fixture_dir/red-cold/rendered"
+  if (cd "$fixture_dir/red-cold" && env -i "PATH=$PATH" "HOME=$HOME" XDG_CACHE_HOME="$fixture_dir/red-cold/xdg" BUN_INSTALL_CACHE_DIR="$fixture_dir/red-cold/bun" ./red build >"$fixture_dir/red-cold.log" 2>&1); then cold_ok=1; break; fi
+done
+[[ $cold_ok == 1 ]] || { echo 'red payload does not build from a cold cache' >&2; exit 1; }
+echo "PASS red payload builds from a cold cache with only its PINS"
 for color in green red blue; do
 cp "$repo/skills/package-neon-multi-node-$color/$color" "$fixture_dir/$color"
 chmod +x "$fixture_dir/$color"
