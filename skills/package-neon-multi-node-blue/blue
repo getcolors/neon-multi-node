@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["package-neon-multi-node-blue", "blue", "colors-compute-blue @ git+https://github.com/getcolors/colors-compute.git@09ec539e75dc21c4dafb019eb8f9da276e695f6f#subdirectory=blue"]
+# dependencies = ["package-neon-multi-node-blue", "blue", "colors-compute-blue @ git+https://github.com/getcolors/colors-compute.git@ae28ea74962bb1897fa6365c143c1d43ac1fe095#subdirectory=blue"]
 #
 # [tool.uv.sources]
 # package-neon-multi-node-blue = { git = "https://github.com/getcolors/neon-multi-node.git", rev = "2a670940d8391be1ad751fffd24f358017b30427", subdirectory = "blue" }

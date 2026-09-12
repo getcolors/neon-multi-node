@@ -5,7 +5,7 @@
     "": {
       "name": "package-neon-multi-node-red-dev",
       "dependencies": {
-        "colors-compute-red": "github:getcolors/colors-compute#09ec539e75dc21c4dafb019eb8f9da276e695f6f",
+        "colors-compute-red": "github:getcolors/colors-compute#ae28ea74962bb1897fa6365c143c1d43ac1fe095",
         "red": "github:getcolors/red#7636bee6a7575485ebaf621f4b1834bdcea59738",
       },
       "devDependencies": {
@@ -64,7 +64,7 @@
 
     "bun-types": ["bun-types@1.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-iIKw23BspnQQYd3prITOBxeUsxBHnwzX6YJfGMuNOZzeNcMmVqzIIVGRm1l69ogaPQmb4wB6BN8mA5bE9YuC5Q=="],
 
-    "colors-compute-red": ["colors-compute-red@github:getcolors/colors-compute#09ec539", { "dependencies": { "red": "github:getcolors/red#db9bfe61282e2093f4098bf5a6ee0cd10added6e" } }, "getcolors-colors-compute-09ec539", "sha512-GE9sjMPGgOvOtV49shPsTXwoNXEA8U3dwt4SAKFnZUKJsn++zEu3TZk8vAAYfIFKlVwbf2Pq8Ul2hxxH5a5Vzg=="],
+    "colors-compute-red": ["colors-compute-red@github:getcolors/colors-compute#ae28ea7", { "peerDependencies": { "red": "*" } }, "getcolors-colors-compute-ae28ea7", "sha512-AKgS7dS07pGgS2O7OhJfAu6MS0/xxJTx/WIxyfGORXbySJEI10ySThyqPYWWJu9SRcgzdFCw0DpkIVm3mWlInQ=="],
 
     "red": ["red@github:getcolors/red#7636bee", { "dependencies": { "zod": "^4.0.0" } }, "getcolors-red-7636bee", "sha512-BCccdjB4lWAq7twfXCNdrGhFmd+EDIcED0HBp4Flw3lFSYKNOlTmsLkNNXtaaH4DYFnAfNfEBzNd8OtWWg25UA=="],
 

@@ -19,7 +19,7 @@
 
 (def blue-unpinned-meta "# dependencies = []\n# ///")
 (defn blue-pinned-meta [sha]
-  (str "# dependencies = [\"package-neon-multi-node-blue\", \"blue\", \"colors-compute-blue @ git+https://github.com/getcolors/colors-compute.git@09ec539e75dc21c4dafb019eb8f9da276e695f6f#subdirectory=blue\"]\n"
+  (str "# dependencies = [\"package-neon-multi-node-blue\", \"blue\", \"colors-compute-blue @ git+https://github.com/getcolors/colors-compute.git@ae28ea74962bb1897fa6365c143c1d43ac1fe095#subdirectory=blue\"]\n"
        "#\n"
        "# [tool.uv.sources]\n"
        "# package-neon-multi-node-blue = { git = \"https://github.com/getcolors/neon-multi-node.git\", rev = \"" sha "\", subdirectory = \"blue\" }\n"

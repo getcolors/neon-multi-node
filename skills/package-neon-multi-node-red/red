@@ -38,7 +38,7 @@ import { homedir } from "node:os";
 const PINS = {
   "red": "github:getcolors/red#7636bee6a7575485ebaf621f4b1834bdcea59738",
   "package-neon-multi-node-red": "github:getcolors/neon-multi-node#2a670940d8391be1ad751fffd24f358017b30427",
-  "colors-compute-red": "github:getcolors/colors-compute#09ec539e75dc21c4dafb019eb8f9da276e695f6f",
+  "colors-compute-red": "github:getcolors/colors-compute#ae28ea74962bb1897fa6365c143c1d43ac1fe095",
 };
 
 // PINS is the only source of versions, as green's inline SHA and blue's PEP
